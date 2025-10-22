@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>MiniTube Modern Dark</title>
+
+<style>
+
+body { margin:0; font-family: Arial, sans-serif; background:#121212; color:#e0e0e0; }
+
+header { background:#1e1e1e; display:flex; align-items:center; justify-content:space-between; padding:5px 10px; position:fixed; top:0; width:100%; z-index:100; box-shadow:0 2px 4px rgba(0,0,0,0.5);}
+
+header h1 { margin:0; font-size:18px; cursor:pointer; color:white; }
+
+header nav { display:flex; align-items:center; gap:5px; }
+
+header nav input { padding:5px 8px; width:140px; border:none; border-radius:20px; font-size:12px; }
+
+header nav button { padding:5px 10px; border:none; border-radius:20px; cursor:pointer; background:#ff0000; color:white; font-weight:bold; font-size:12px; }
+
+#main { margin-top:60px; padding:10px; }
+
+.video-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+
+.video-card { background:#1e1e1e; border-radius:10px; overflow:hidden; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.3); display:flex; flex-direction:column; transition: transform 0.2s; }
+
+.video-card:hover { transform:scale(1.03); }
+
+.video-card iframe { width:100%; height:100px; border:none; border-radius:5px; }
+
+.video-card h4, .video-card p { margin:5px; font-size:12px; display:flex; align-items:center; gap:3px; }
+
+#channelHeader { margin-bottom:10px; text-align:center; font-size:16px; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:5px; }
+
+#uploadForm { display:none; max-width:250px; margin:20px auto; background:#1e1e1e; padding:10px; border-radius:10px; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.5);}
+
+#uploadForm input { margin-bottom:5px; padding:5px; width:90%; border-radius:5px; border:none; }
+
+#uploadForm button { margin-top:5px; padding:5px 10px; border:none; border-radius:5px; cursor:pointer; font-size:12px; }
+
+#uploadBtn { position:fixed; bottom:15px; right:15px; padding:10px 14px; border:none; border-radius:50%; background:#ff0000; color:white; font-weight:bold; font-size:16px; cursor:pointer; display:none; }
+
+#signupForm { max-width:250px; margin:100px auto; background:#1e1e1e; padding:15px; border-radius:10px; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.5);}
+
+#signupForm input { width:90%; margin-bottom:8px; padding:5px; font-size:14px; border-radius:5px; border:none; }
+
+#signupForm button { padding:5px 12px; font-size:14px; border:none; border-radius:5px; background:#ff0000; color:white; cursor:pointer; }
+
+#noVideos { text-align:center; font-size:12px; color:gray; margin-top:20px; }
+
+.verified-badge { display:inline-block; width:16px; height:16px; background:#2196f3; border-radius:3px; position:relative; }
+
+.verified-badge::after { content:""; position:absolute; top:2px; left:4px; width:6px; height:10px; border:solid white; border-width:0 2px 2px 0; transform:rotate(45deg); }
+
+.channel-link { cursor:pointer; color:#2196f3; text-decoration:none; display:flex; align-items:center; gap:3px; }
+
+#subscribeBtn { padding:5px 10px; border:none; border-radius:5px; cursor:pointer; background:#ff0000; color:white; font-size:12px; font-weight:bold; margin-left:10px; }
+
+#logoutBtn { padding:5px 10px; border:none; border-radius:5px; cursor:pointer; background:gray; color:white; font-size:12px; font-weight:bold; margin-left:5px; }
+
+</style>
+
+</head>
+
+<body>
+
+<div id="signupForm">
+
+<h3>Sign In or Create Channel</h3>
+
+<input type="text" id="channelNameInput" placeholder="Channel Name">
+
+<br>
+
+<button onclick="signup()">Start</button>
+
+</div>
+
+<header style="display:none;">
+
+<h1 onclick="showHome()">MiniTube</h1>
+
+<nav>
+
+<input type="text" id="searchInput" placeholder="Search" oninput="filterVideos()">
+
+<button onclick="showYourChannel()">Your Channel</button>
+
+<button id="logoutBtn" onclick="logout()">Log Out</button>
+
+</nav>
+
+</header>
+
+<div id="main" style="display:none;">
+
+<div id="channelHeader" style="display:none;"></div>
+
+<div class="video-grid" id="videoContainer"></div>
+
+<div id="noVideos" style="display:none;">no videos here right now</div>
+
+<div id="uploadForm">
+
+<h4>Upload Video</h4>
+
+<input type="text" id="videoTitle" placeholder="Video Title"><br>
+
+<input type="file" id="videoFile" accept="video/*"><br>
+
+<button onclick="uploadVideo()">Upload</button><br>
+
+<button onclick="cancelUpload()" style="background:gray;">Cancel</button>
+
+</div>
+
+<button id="uploadBtn" onclick="showUploadForm()">+</button>
+
+</div>
+
+<script>
+
+let currentUser = localStorage.getItem('currentUser') || null;
+
+let users = JSON.parse(localStorage.getItem('users')|| '{}');
+
+let videos = JSON.parse(localStorage.getItem('videos')|| '[]');
+
+let subscriptions = JSON.parse(localStorage.getItem('subscriptions')|| '{}');
+
+let onChannelPage = false;
+
+// Preloaded MiniTube account
+
+if(!users['MiniTube']){
+
+    users['MiniTube'] = {channelName:'MiniTube'};
+
+    localStorage.setItem('users', JSON.stringify(users));
+
+}
+
+// Preloaded videos with actual uploaders
+
+const preloadedVideos = [
+
+  {user:'FunnyCatsOfficial', title:'Funny Cat Compilation', src:'https://www.youtube.com/embed/J---aiyznGQ'},
+
+  {user:'EpicFailsDaily', title:'Epic Fails 2023', src:'https://www.youtube.com/embed/LXb3EKWsInQ'},
+
+  {user:'ScienceExplained', title:'Amazing Science Tricks', src:'https://www.youtube.com/embed/4l6yA5Jx6fM'},
+
+  {user:'MiniTube', title:'MiniTube Promo Video', src:'https://www.youtube.com/embed/ScMzIvxBSi4'},
+
+  {user:'TechWorld', title:'Top 10 Gadgets 2025', src:'https://www.youtube.com/embed/tgbNymZ7vqY'},
+
+  {user:'CookingDaily', title:'Easy Pasta Recipes', src:'https://www.youtube.com/embed/1-SJGQ2HLp8'},
+
+  {user:'TravelVlogs', title:'Exploring Japan', src:'https://www.youtube.com/embed/5qap5aO4i9A'},
+
+  {user:'MusicHits', title:'Top 50 Songs', src:'https://www.youtube.com/embed/kJQP7kiw5Fk'},
+
+  {user:'GamingHub', title:'Best FPS Games', src:'https://www.youtube.com/embed/VYOjWnS4cMY'},
+
+  {user:'ArtChannel', title:'Digital Painting Tips', src:'https://www.youtube.com/embed/IcrbM1l_BoI'}
+
+];
+
+if(videos.length===0) videos = preloadedVideos;
+
+function signup(){
+
+    const name = document.getElementById('channelNameInput').value.trim();
+
+    if(!name) return alert("Enter channel name");
+
+    currentUser = name;
+
+    localStorage.setItem('currentUser', currentUser);
+
+    if(!users[currentUser]){
+
+        users[currentUser] = {channelName: name};
+
+        localStorage.setItem('users', JSON.stringify(users));
+
+    }
+
+    document.getElementById('signupForm').style.display='none';
+
+    document.querySelector('header').style.display='flex';
+
+    document.getElementById('main').style.display='block';
+
+    showHome();
+
+}
+
+// Show videos in grid
+
+function renderVideos(list){
+
+    const container = document.getElementById('videoContainer');
+
+    const noV = document.getElementById('noVideos');
+
+    container.innerHTML='';
+
+    if(list.length === 0){
+
+        noV.style.display='block';
+
+        return;
+
+    } else {
+
+        noV.style.display='none';
+
+    }
+
+    list.forEach(v=>{
+
+        const badge = (v.user==='MiniTube') ? '<span class="verified-badge"></span>' : '';
+
+        const div = document.createElement('div');
+
+        div.className='video-card';
+
+        div.innerHTML=`<iframe src="${v.src}" allowfullscreen></iframe>
+
+        <h4>${v.title}</h4>
+
+        <p><span class="channel-link" onclick="goToChannel('${v.user}')">${v.user} ${badge}</span></p>`;
+
+        container.appendChild(div);
+
+    });
+
+}
+
+function showHome(){
+
+    onChannelPage=false;
+
+    document.getElementById('channelHeader').style.display='none';
+
+    document.getElementById('uploadBtn').style.display='none';
+
+    document.getElementById('uploadForm').style.display='none';
+
+    renderVideos(videos);
+
+}
+
+function showYourChannel(){
+
+    goToChannel(currentUser);
+
+    document.getElementById('uploadBtn').style.display='block';
+
+}
+
+function goToChannel(channelName){
+
+    onChannelPage=true;
+
+    document.getElementById('channelHeader').style.display='flex';
+
+    const badge = (channelName==='MiniTube') ? '<span class="verified-badge"></span>' : '';
+
+    const subscribed = subscriptions[currentUser] && subscriptions[currentUser].includes(channelName);
+
+    const subBtnText = (channelName===currentUser) ? '' : (subscribed ? 'Subscribed' : 'Subscribe');
+
+    document.getElementById('channelHeader').innerHTML = `${channelName} ${badge}` + (subBtnText ? `<button id="subscribeBtn" onclick="toggleSubscribe('${channelName}')">${subBtnText}</button>`:'');
+
+    document.getElementById('uploadBtn').style.display = (channelName===currentUser) ? 'block' : 'none';
+
+    document.getElementById('uploadForm').style.display='none';
+
+    const userVideos = videos.filter(v=>v.user===channelName);
+
+    renderVideos(userVideos);
+
+}
+
+function toggleSubscribe(channelName){
+
+    subscriptions[currentUser] = subscriptions[currentUser] || [];
+
+    if(subscriptions[currentUser].includes(channelName)){
+
+        subscriptions[currentUser] = subscriptions[currentUser].filter(c=>c!==channelName);
+
+    } else {
+
+        subscriptions[currentUser].push(channelName);
+
+    }
+
+    localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
+
+    showYourChannel();
+
+}
+
+function showUploadForm(){
+
+    document.getElementById('uploadForm').style.display='block';
+
+}
+
+function cancelUpload(){
+
+    document.getElementById('uploadForm').style.display='none';
+
+    document.getElementById('videoTitle').value='';
+
+    document.getElementById('videoFile').value='';
+
+}
+
+function uploadVideo(){
+
+    const title = document.getElementById('videoTitle').value.trim();
+
+    const file = document.getElementById('videoFile').files[0];
+
+    if(!title || !file) return alert("Enter title and select video");
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        videos.push({user: currentUser, title: title, src: e.target.result});
+
+        localStorage.setItem('videos', JSON.stringify(videos));
+
+        showYourChannel();
+
+        cancelUpload();
+
+    };
+
+    reader.readAsDataURL(file);
+
+}
+
+function filterVideos(){
+
+    const q = document.getElementById('searchInput').value.toLowerCase();
+
+    let list = onChannelPage ? videos.filter(v=>v.user===currentUser) : videos;
+
+    const filtered = list.filter(v=>v.title.toLowerCase().includes(q) || v.user.toLowerCase().includes(q));
+
+    renderVideos(filtered);
+
+}
+
+function logout(){
+
+    localStorage.removeItem('currentUser');
+
+    currentUser=null;
+
+    document.getElementById('signupForm').style.display='block';
+
+    document.querySelector('header').style.display='none';
+
+    document.getElementById('main').style.display='none';
+
+}
+
+// Auto login if already signed in
+
+if(currentUser){
+
+    document.getElementById('signupForm').style.display='none';
+
+    document.querySelector('header').style.display='flex';
+
+    document.getElementById('main').style.display='block';
+
+    showHome();
+
+}
+
+</script><!-- Video Panel -->
+
+<div id="videoPanel" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:200; overflow-y:auto; flex-direction:column; align-items:center; padding:20px; box-sizing:border-box;">
+
+  <div style="position:relative; width:90%; max-width:900px; background:#1e1e1e; border-radius:10px; overflow:hidden; display:flex; flex-direction:column; align-items:center; padding-bottom:20px;">
+
+    <iframe id="panelVideo" src="" allowfullscreen style="width:100%; height:500px; border:none;"></iframe>
+
+    
+
+    <div style="margin-top:10px; width:90%; display:flex; justify-content:space-around; color:white; flex-wrap:wrap;">
+
+      <button id="panelLike">👍 Like <span id="panelLikeCount">0</span></button>
+
+      <button id="panelDislike">👎 Dislike <span id="panelDislikeCount">0</span></button>
+
+      <button id="panelCommentBtn">💬 Comment</button>
+
+    </div>
+
+    
+
+    <div id="panelComments" style="width:90%; margin-top:15px; color:white; font-size:14px;"></div>
+
+    
+
+    <div style="margin-top:20px; width:90%; text-align:left;">
+
+      <h4 style="color:white; margin-bottom:10px;">Recommended Videos</h4>
+
+      <div id="panelRecommended" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+    </div>
+
+    
+
+    <button id="closePanel" style="position:absolute; top:5px; right:5px; padding:5px 10px; border:none; border-radius:5px; background:red; color:white; cursor:pointer;">X</button>
+
+  </div>
+
+</div>
+
+<script>
+
+// Data
+
+let panelLikeCount = 0;
+
+let panelDislikeCount = 0;
+
+// Open panel when video clicked
+
+document.querySelectorAll('.video-card').forEach(card => {
+
+  card.addEventListener('click', function(){
+
+    const iframeSrc = card.querySelector('iframe').src;
+
+    const title = card.querySelector('h4').textContent;
+
+    document.getElementById('panelVideo').src = iframeSrc;
+
+    document.getElementById('videoPanel').style.display = 'flex';
+
+    // Reset counters
+
+    panelLikeCount = 0;
+
+    panelDislikeCount = 0;
+
+    document.getElementById('panelLikeCount').textContent = panelLikeCount;
+
+    document.getElementById('panelDislikeCount').textContent = panelDislikeCount;
+
+    // Clear comments
+
+    document.getElementById('panelComments').innerHTML = '';
+
+    // Recommended videos (all except this one)
+
+    const recommended = videos.filter(v=>v.title!==title);
+
+    const recContainer = document.getElementById('panelRecommended');
+
+    recContainer.innerHTML = '';
+
+    recommended.forEach(v=>{
+
+      const div = document.createElement('div');
+
+      div.style.background="#2a2a2a";
+
+      div.style.borderRadius="5px";
+
+      div.style.padding="5px";
+
+      div.style.cursor="pointer";
+
+      div.textContent = v.title + " - " + v.user;
+
+      div.addEventListener('click', ()=>{
+
+        document.getElementById('panelVideo').src = v.src;
+
+        panelLikeCount = 0;
+
+        panelDislikeCount = 0;
+
+        document.getElementById('panelLikeCount').textContent = panelLikeCount;
+
+        document.getElementById('panelDislikeCount').textContent = panelDislikeCount;
+
+      });
+
+      recContainer.appendChild(div);
+
+    });
+
+  });
+
+});
+
+// Close panel
+
+document.getElementById('closePanel').addEventListener('click', ()=>{
+
+  document.getElementById('videoPanel').style.display = 'none';
+
+  document.getElementById('panelVideo').src = '';
+
+});
+
+// Like
+
+document.getElementById('panelLike').addEventListener('click', ()=>{
+
+  panelLikeCount++;
+
+  document.getElementById('panelLikeCount').textContent = panelLikeCount;
+
+});
+
+// Dislike
+
+document.getElementById('panelDislike').addEventListener('click', ()=>{
+
+  panelDislikeCount++;
+
+  document.getElementById('panelDislikeCount').textContent = panelDislikeCount;
+
+});
+
+// Comment
+
+document.getElementById('panelCommentBtn').addEventListener('click', ()=>{
+
+  const comment = prompt("Write a comment:");
+
+  if(comment){
+
+    const div = document.createElement('div');
+
+    div.textContent = comment;
+
+    div.style.borderTop="1px solid #333";
+
+    div.style.padding="5px 0";
+
+    document.getElementById('panelComments').appendChild(div);
+
+  }
+
+});
+
+</script>
+
+</body>
+
+</html>
+    
+  </body>
+  
+</html>
